@@ -1,22 +1,20 @@
 import Layout from "@/components/Layout"
 import Post from "@/components/Post"
-import Pagination from "@/components/Pagination"
 import { sortByDate } from '@/utils/index'
-import { POSTS_PER_PAGE } from '@/config/index'
 import Link from 'next/link'
 import fs from 'fs'
 import path from 'path'
 import matter from 'gray-matter'
 
-const BlogPage = ({ posts, numPages, currentPage }) => {
+const CategoryBlogPage = ({ posts, categoryName }) => {
     return (
         <Layout>
-            <h1 className='text-5xl border-b-4 p-5 font-bold'>Blog</h1>
+            <h1 className='text-5xl border-b-4 p-5 font-bold'>Posts in {categoryName}</h1>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {posts.map((post, index) => <Post key={index} post={post} />)}
             </div>
-            <Pagination currentPage={currentPage} numPages={numPages} />
+
         </Layout>
     )
 }
@@ -24,26 +22,24 @@ const BlogPage = ({ posts, numPages, currentPage }) => {
 export async function getStaticPaths() {
     const files = fs.readdirSync(path.join('posts'))
 
-    const numPages = Math.ceil(files.length / POSTS_PER_PAGE)
+    const categories = files.map(filename => {
+        const markdownWithMeta = fs.readFileSync(path.join('posts', filename), 'utf-8')
+        const { data: frontmatter } = matter(markdownWithMeta)
 
-    let paths = []
+        return frontmatter.category.toLowerCase()
+    })
 
-    for (let i = 1; i <= numPages; i++) {
-        paths.push({
-            params: { page_index: i.toString() },
-        })
-    }
+    const paths = categories.map(category => ({
+        params: { category_name: category }
+    }))
 
     return {
         paths,
-        fallback: false,
+        fallback: false
     }
 }
 
-
-export async function getStaticProps({ params }) {
-    const page = parseInt((params && params.page_index) || 1)
-
+export async function getStaticProps({ params: { category_name } }) {
     const files = fs.readdirSync(path.join('posts'))
 
     const posts = files.map(filename => {
@@ -56,21 +52,16 @@ export async function getStaticProps({ params }) {
         return { slug, frontmatter }
     })
 
-    const numPages = Math.ceil(files.length / POSTS_PER_PAGE)
-    const pageIndex = page - 1
-    const orderedPosts = posts.slice(
-        pageIndex * POSTS_PER_PAGE,
-        (pageIndex + 1) * POSTS_PER_PAGE
-    )
+    // Filter posts by category
+    const categoryPosts = posts.filter(post => post.frontmatter.category.toLowerCase() === category_name)
 
     return {
         props: {
-            posts: orderedPosts,
-            numPages,
-            currentPage: page
+            posts: categoryPosts.sort(sortByDate),
+            categoryName: category_name
         }
     }
 }
 
-export default BlogPage
+export default CategoryBlogPage
 
