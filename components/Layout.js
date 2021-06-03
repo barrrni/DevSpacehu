@@ -20,7 +20,7 @@ const Layout = ({ title, keywords, description, children }) => {
 }
 
 Layout.defaultProps = {
-    title: 'Welcome to DevScape',
+    title: 'Welcome to DevSpace',
     keywords: 'development, coding, programming',
     description: 'The best info and news in development'
 }
